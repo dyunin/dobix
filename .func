@@ -5,7 +5,7 @@
 # 
 #         USAGE: ./.func 
 # 
-#   DESCRIPTION: 
+#   DESCRIPTION: All functions for dobix
 # 
 #       OPTIONS: ---
 #  REQUIREMENTS: ---
@@ -81,7 +81,6 @@ install_env ()
   template_env='.templates/template.env'
   template_vhost='.templates/template.vhost'
   frontend_conf_d='frontend/conf.d'
-  check_pwd="['!'@#\$%^\&*()_+]"
   
   source .func
   
@@ -127,13 +126,13 @@ install_env ()
   
   cp $template_env $env_file
   
-  sed -i "s/##uid##/$(id -u)/g"               $env_file
-  sed -i "s/##poolname##/$poolname/g"         $env_file
+  sed -i "s|##uid##|$(id -u)|g"               $env_file
+  sed -i "s|##poolname##|$poolname|g"         $env_file
   sed -i "s|##sitepath##|$sitepath|g"         $env_file
-  sed -i "s/##dbname##/$dbname/g"             $env_file
-  sed -i "s/##dbuser##/$dbuser/g"             $env_file
-  sed -i "s&##dbpasswd##&$dbpasswd&g"         $env_file
-  sed -i "s&##dbrootpasswd##&$dbrootpasswd&g" $env_file
+  sed -i "s|##dbname##|$dbname|g"             $env_file
+  sed -i "s|##dbuser##|$dbuser|g"             $env_file
+  sed -i "s|##dbpasswd##|$dbpasswd|g"         $env_file
+  sed -i "s|##dbrootpasswd##|$dbrootpasswd|g" $env_file
 
   if [[ ! -d $sitepath ]]; then
     sudo mkdir -p $sitepath
