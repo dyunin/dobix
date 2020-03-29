@@ -1,0 +1,8 @@
+*.swp
+db
+log
+stuff
+site
+.env
+test.env
+backup

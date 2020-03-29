@@ -1,0 +1,70 @@
+server {
+  listen 80;
+  server_name ##vhostname##;
+  charset utf-8;
+	root   /var/www/##vhostname##/www;
+	index  index.php bitrixsetup.php index.html;
+	autoindex off;
+
+  access_log /var/log/nginx/access.log;
+  error_log /var/log/nginx/error.log;	
+
+	proxy_set_header X-Real-IP $remote_addr;
+	proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+	proxy_set_header Host $host:80;
+
+	client_max_body_size 1024M; 
+	client_body_buffer_size 4M;
+	
+	if (!-e $request_filename) {
+		rewrite  ^(.*)$  /bitrix/urlrewrite.php last;
+	}
+	
+	location / {
+		try_files  $uri $uri/ @bitrix;
+	}
+	
+	location ~ \.php$ {
+		fastcgi_pass    backend;
+		fastcgi_index index.php;
+		include fastcgi_params;
+		fastcgi_intercept_errors        on;
+		fastcgi_ignore_client_abort     off;
+		fastcgi_connect_timeout 60;
+		fastcgi_send_timeout 180;
+		fastcgi_read_timeout 180;
+		fastcgi_buffer_size 128k;
+		fastcgi_buffers 4 256k;
+		fastcgi_busy_buffers_size 256k;
+		fastcgi_temp_file_write_size 256k;
+    fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+		
+		if (!-f $request_filename) {
+			rewrite  ^(.*)/index.php$  $1/ redirect;
+		}
+	}
+ 
+	location @bitrix {
+		include fastcgi_params;
+		fastcgi_param SCRIPT_FILENAME $document_root/bitrix/urlrewrite.php;
+		fastcgi_pass backend;
+	}
+
+	location ~* ^.+\.(jpg|jpeg|gif|png|svg|js|css|mp3|ogg|mpe?g|avi|zip|gz|bz2?|rar|swf|ttf|otf|eof|woff|woff2|otf)$ {
+		access_log        off;
+		expires           max;
+	}
+
+	location ~ (/\.ht|/\.git|/\.svn|/bitrix/modules|/upload/support/not_image) {
+		deny all;
+	}
+
+	error_page 404 /404.html;
+	location = /404.html {
+		root /var/www/html/##vhostname##/www;
+	}
+	error_page   500 502 503 504  /50x.html;
+	location = /50x.html {
+		root /var/www/html/##vhostname##/www;
+	}
+}
