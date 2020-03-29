@@ -1,0 +1,96 @@
+version: '3.7'
+
+services:
+
+  frontend:
+    build:
+      context: frontend
+      args:
+        - APP_UID=${HOST_UID}
+    container_name: ${PROJECT_NAME}_nginx
+    working_dir: /var/www
+    links:
+      - backend
+    volumes:
+      - ${SITE_PATH}:/var/www
+      - ./log/nginx:/var/log/nginx
+      - ./frontend/conf.d:/etc/nginx/conf.d
+    ports:
+      - "8080:80"
+    networks:
+      - dobix_network
+    restart: always
+
+  backend:
+    build:
+      context: backend/${PHP_VERSION}
+      args:
+        - APP_UID=${HOST_UID}
+    container_name: ${PROJECT_NAME}_php-${PHP_VERSION}-fpm
+    #working_dir: /var/www/html 
+    working_dir: /var/www
+    links:
+      - db
+      - memcached
+    volumes:
+      #- ${SITE_PATH}/www:/var/www/html
+      - ${SITE_PATH}:/var/www
+      - ./log/php:/var/log/php
+    ports:
+      - "9000"
+    networks:
+      - dobix_network
+    restart: always
+
+  memcached:
+    image: memcached:1.6-alpine
+    container_name: ${PROJECT_NAME}_memcached
+    command: ["memcached", "-m", "128"]
+    volumes:
+      - ./log/memcached:/var/log/memcached
+      #- ./memcached:/var/lib/memcached
+    ports:
+      - "11211"
+    networks:
+      - dobix_network
+    restart: always
+
+  db:
+    image: mysql:5.7
+    container_name: ${PROJECT_NAME}_mysql
+    volumes:
+      - ./db/mysql:/var/lib/mysql
+      - ./db/my.cnf:/etc/mysql/conf.d/my.cnf
+    ports:
+        - "3306"
+    environment:
+        MYSQL_DATABASE: ${MYSQL_DATABASE}
+        MYSQL_USER: ${MYSQL_USER}
+        MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+        MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    command: mysqld --sql-mode=""
+    networks:
+      - dobix_network
+    restart: always
+
+  portainer:
+    image: portainer/portainer
+    container_name: portainer
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+    ports:
+      - "8008:8000"
+      - "9009:9000"
+    restart: always
+
+volumes:
+  portainer_data:
+
+networks:
+  dobix_network:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 10.100.0.0/24
