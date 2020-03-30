@@ -139,9 +139,9 @@ install_env ()
     sudo chown -R $USER: $sitepath
   fi
 
+  docker-compose up -d --build
   echo ""
   echo "Окружение готово к работе. Добавьте сайт."
-  docker-compose up -d --build
   post_install
 }	# ----------  end of function install  ----------
 
@@ -211,6 +211,7 @@ add_vhost ()
   source .env
   read -p "Введите название сайта " vhost
   sudo mkdir -p $SITE_PATH/$vhost/www
+  sudo chown -R $USER: $SITE_PATH/$vhost/www
   cp $template_vhost $frontend_conf_d/$vhost.conf
   sed -i "s/##vhostname##/$vhost/g" $frontend_conf_d/$vhost.conf
   create_db
