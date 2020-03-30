@@ -118,11 +118,6 @@ install_env ()
       fi
     done
   fi
-
-  #if [[ ! $dbrootpasswd =~ ^[[:alnum:]]+$ ]]; then
-    #echo "В пароле могут быть только цифры и латинские буквы!"
-    #exit 1
-  #fi
   
   cp $template_env $env_file
   
