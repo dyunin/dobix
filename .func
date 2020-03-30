@@ -86,7 +86,6 @@ install_env ()
   
   read -p "Введите название пула для сайтов: " poolname
   read -p "Укажите путь к каталогу где будут хранится сайты: " sitepath
-  read -p "Введите имя базы данных: " dbname
   read -p "Введите имя пользователя базы данных: " dbuser
   read -p "Введите пароль пользователя базы данных. В пароле могут быть только цифры и латинские буквы: " dbpasswd
   read -p "Введите пароль суперпользователя root базы данных. В пароле могут быть только цифры и латинские буквы: " dbrootpasswd
@@ -124,7 +123,6 @@ install_env ()
   sed -i "s|##uid##|$(id -u)|g"               $env_file
   sed -i "s|##poolname##|$poolname|g"         $env_file
   sed -i "s|##sitepath##|$sitepath|g"         $env_file
-  sed -i "s|##dbname##|$dbname|g"             $env_file
   sed -i "s|##dbuser##|$dbuser|g"             $env_file
   sed -i "s|##dbpasswd##|$dbpasswd|g"         $env_file
   sed -i "s|##dbrootpasswd##|$dbrootpasswd|g" $env_file
@@ -150,7 +148,8 @@ add_trial_version ()
 {
   source .env
   read -p "Введите название сайта " vhost
-  mkdir -p $SITE_PATH/$vhost/www
+  sudo mkdir -p $SITE_PATH/$vhost/www
+  sudo chown -R $USER: $SITE_PATH/$vhost
   cp $template_vhost $frontend_conf_d/$vhost.conf
   sed -i "s/##vhostname##/$vhost/g" $frontend_conf_d/$vhost.conf
   curl -L "http://www.1c-bitrix.ru/download/scripts/bitrixsetup.php" \
