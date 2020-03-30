@@ -155,6 +155,7 @@ add_trial_version ()
   sed -i "s/##vhostname##/$vhost/g" $frontend_conf_d/$vhost.conf
   curl -L "http://www.1c-bitrix.ru/download/scripts/bitrixsetup.php" \
     -o $SITE_PATH/$vhost/www/bitrixsetup.php
+  docker down
   docker-compose up -d --build
   exit 0
 }	# ----------  end of function add_trial_version  ----------
@@ -168,11 +169,12 @@ add_trial_version ()
 create_db ()
 {
   source .env
-  read -p "Введите название БД " dbname
+  read -p "Введите название базы данных " dbname
   docker exec -i ${PROJECT_NAME}_mysql mysql -uroot -p$MYSQL_ROOT_PASSWORD \
     -e "CREATE DATABASE IF NOT EXISTS $dbname CHARACTER SET utf8 COLLATE utf8_unicode_ci; \
         GRANT ALL PRIVILEGES ON $dbname . * TO \`$MYSQL_USER\`@\`localhost\`; \
         FLUSH PRIVILEGES;" &>/dev/null
+  echo "База данных $dbname создана"
 }	# ----------  end of function create_db  ----------
 
 #---  FUNCTION  ----------------------------------------------------------------
@@ -184,14 +186,17 @@ create_db ()
 load_dump ()
 {
   source .env
-  read -p "Укажите путь к дампу БД: " dumppath
-  read -p "Введите название БД " dbname
+  read -p "Укажите путь к дампу базы данных. Загрузить дамп можно в текстовом формате или в архиве gzip: " dumppath
+  read -p "Введите название базы данных куда будет загружен дамп " dbname
   if [[ $(file $dumppath | cut -d' ' -f2) == gzip ]]; then
+    echo "Загружается дамп..."
     zcat $dumppath | docker exec -i ${PROJECT_NAME}_mysql mysql -uroot -p$MYSQL_ROOT_PASSWORD $dbname &>/dev/null
   elif [[ $(file $dumppath | cut -d' ' -f4 | sed 's/.$//') == text ]]; then
+    echo "Загружается дамп..."
     cat $dumppath | docker exec -i ${PROJECT_NAME}_mysql mysql -uroot -p$MYSQL_ROOT_PASSWORD $dbname &>/dev/null
   else  
-    echo "Непонятный тип дампа"
+    echo "Непонятный тип дампа, проверте путь и формат файла дампа."
+    exit 1
   fi
 }	# ----------  end of function load_dump  ----------
 
@@ -206,15 +211,51 @@ add_vhost ()
   source .env
   read -p "Введите название сайта " vhost
   sudo mkdir -p $SITE_PATH/$vhost/www
-  sudo chown -R $USER: $SITE_PATH/$vhost/www
+  sudo chown -R $USER: $SITE_PATH/$vhost
   cp $template_vhost $frontend_conf_d/$vhost.conf
   sed -i "s/##vhostname##/$vhost/g" $frontend_conf_d/$vhost.conf
   create_db
   load_dump
+  docker down
   docker-compose up -d --build
+  echo ""
   echo "Разместите файлы проекта в docroot сайта $SITE_PATH/$vhost/www"
+  echo "Настройте подключение к базе данных вручную"
+  echo "Или воспользуйтесь меню, пункт 6"
 }	# ----------  end of function add_vhost  ----------
 
+
+#---  FUNCTION  ----------------------------------------------------------------
+#          NAME:  make_settings
+#   DESCRIPTION:  Make settings. Files dbconn.php and .settings.php
+#    PARAMETERS:  
+#       RETURNS:  
+#-------------------------------------------------------------------------------
+make_settings ()
+{
+  source .env
+  read -p "Укажите docroot сайта: " docroot
+  if [[ "${docroot: -1}" == '/' ]]; then
+  docroot=${docroot::-1}
+  fi
+  read -p "Укажите название базы данных: " namedb
+
+  settings_file="$docroot/bitrix/.settings.php"
+  dbconn_file="$docroot/bitrix/php_interface/dbconn.php"
+  dbhost=`grep DBHost     $dbconn_file | awk -F '"' '{print $2}'`
+  dbuser=`grep DBLogin    $dbconn_file | awk -F '"' '{print $2}'`
+  dbname=`grep DBName     $dbconn_file | awk -F '"' '{print $2}'`
+  dbpass=`grep DBPassword $dbconn_file | awk -F '"' '{print $2}'`
+
+  sed -i "s|$dbhost|db|g"              $settings_file
+  sed -i "s|$dbuser|$MYSQL_USER|g"     $settings_file
+  sed -i "s|$dbpass|$MYSQL_PASSWORD|g" $settings_file
+  sed -i "s|$dbname|$namedb|g"         $settings_file
+  sed -i "s|$dbhost|db|g"              $dbconn_file
+  sed -i "s|$dbuser|$MYSQL_USER|g"     $dbconn_file
+  sed -i "s|$dbpass|$MYSQL_PASSWORD|g" $dbconn_file
+  sed -i "s|$dbname|$namedb|g"         $dbconn_file
+}	# ----------  end of function make_settings  ----------
 
 #---  FUNCTION  ----------------------------------------------------------------
 #          NAME:  post_install
