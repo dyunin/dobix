@@ -24,6 +24,7 @@ if [[ -f .env ]]; then
 fi
 
 frontend_conf_d='frontend/conf.d'
+template_vhost='.templates/template.vhost'
 
 
 #---  FUNCTION  ----------------------------------------------------------------
@@ -79,7 +80,6 @@ install_env ()
 {
   env_file='.env'
   template_env='.templates/template.env'
-  template_vhost='.templates/template.vhost'
   frontend_conf_d='frontend/conf.d'
   
   source .func
@@ -141,6 +141,7 @@ install_env ()
 
   echo ""
   echo "Окружение готово к работе. Добавьте сайт."
+  docker-compose up -d --build
   post_install
 }	# ----------  end of function install  ----------
 
@@ -209,7 +210,7 @@ add_vhost ()
 {
   source .env
   read -p "Введите название сайта " vhost
-  mkdir -p $SITE_PATH/$vhost/www
+  sudo mkdir -p $SITE_PATH/$vhost/www
   cp $template_vhost $frontend_conf_d/$vhost.conf
   sed -i "s/##vhostname##/$vhost/g" $frontend_conf_d/$vhost.conf
   create_db

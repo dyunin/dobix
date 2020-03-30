@@ -27,13 +27,11 @@ services:
       args:
         - APP_UID=${HOST_UID}
     container_name: ${PROJECT_NAME}_php-${PHP_VERSION}-fpm
-    #working_dir: /var/www/html 
     working_dir: /var/www
     links:
       - db
       - memcached
     volumes:
-      #- ${SITE_PATH}/www:/var/www/html
       - ${SITE_PATH}:/var/www
       - ./log/php:/var/log/php
     ports:

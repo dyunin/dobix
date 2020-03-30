@@ -6,7 +6,7 @@ ARG APP_UID
 
 RUN adduser -u $APP_UID --disabled-password --gecos "" app \
     && addgroup app nginx \
-    && mkdir -p /var/www/html && chown -R app:app /var/www
+    && mkdir -p /var/www && chown -R app:app /var/www
 
 EXPOSE 80 443
 
