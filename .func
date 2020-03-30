@@ -177,7 +177,7 @@ create_db ()
   docker exec -i ${PROJECT_NAME}_mysql mysql -uroot -p$MYSQL_ROOT_PASSWORD \
     -e "CREATE DATABASE IF NOT EXISTS $dbname CHARACTER SET utf8 COLLATE utf8_unicode_ci; \
         GRANT ALL PRIVILEGES ON $dbname . * TO \`$MYSQL_USER\`@\`localhost\`; \
-        FLUSH PRIVILEGES;"
+        FLUSH PRIVILEGES;" &>/dev/null
 }	# ----------  end of function create_db  ----------
 
 #---  FUNCTION  ----------------------------------------------------------------
@@ -192,9 +192,9 @@ load_dump ()
   read -p "Укажите путь к дампу БД: " dumppath
   read -p "Введите название БД " dbname
   if [[ $(file $dumppath | cut -d' ' -f2) == gzip ]]; then
-    zcat $dumppath | docker exec -i ${PROJECT_NAME}_mysql mysql -uroot -p$MYSQL_ROOT_PASSWORD $dbname
+    zcat $dumppath | docker exec -i ${PROJECT_NAME}_mysql mysql -uroot -p$MYSQL_ROOT_PASSWORD $dbname &>/dev/null
   elif [[ $(file $dumppath | cut -d' ' -f4 | sed 's/.$//') == text ]]; then
-    cat $dumppath | docker exec -i ${PROJECT_NAME}_mysql mysql -uroot -p$MYSQL_ROOT_PASSWORD $dbname
+    cat $dumppath | docker exec -i ${PROJECT_NAME}_mysql mysql -uroot -p$MYSQL_ROOT_PASSWORD $dbname &>/dev/null
   else  
     echo "Непонятный тип дампа"
   fi
