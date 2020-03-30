@@ -154,8 +154,15 @@ install_env ()
     sudo mkdir -p $sitepath
     sudo chown -R $USER: $sitepath
   fi
+ 
+  #-------------------------------------------------------------------------------
+  #  Create env for default site
+  #-------------------------------------------------------------------------------
+  mkdir -p $sitepath/bitrix/www
+  curl -sSL http://dev.1c-bitrix.ru/download/scripts/bitrix_server_test.php \
+    -o $sitepath/bitrix/www/index.php
 
-  docker-compose up -d --build
+  docker-compose up -d --build &> /dev/null
   echo ""
   echo "Окружение готово к работе. Добавьте сайт."
   post_install
@@ -176,10 +183,17 @@ add_trial_version ()
   sudo chown -R $USER: $SITE_PATH/$vhost
   cp $template_vhost $frontend_conf_d/$vhost.conf
   sed -i "s/##vhostname##/$vhost/g" $frontend_conf_d/$vhost.conf
-  curl -L "http://www.1c-bitrix.ru/download/scripts/bitrixsetup.php" \
+  curl -sSL "http://www.1c-bitrix.ru/download/scripts/bitrixsetup.php" \
     -o $SITE_PATH/$vhost/www/bitrixsetup.php
+  echo "Установка..."
   docker-compose down
   docker-compose up -d --build
+  echo ""
+  create_db
+  echo "Готово. Добавьте название сайта в файл hosts связав" \
+    "его с адресом где развернуто рабочее окружение"
+  echo "Например 127.0.0.1 site. После этого перейдите в браузере по адресу" \
+    "http://site:8080 и продолжите установку"
   exit 0
 }	# ----------  end of function add_trial_version  ----------
 
