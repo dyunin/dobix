@@ -28,6 +28,22 @@ template_vhost='.templates/template.vhost'
 
 
 #---  FUNCTION  ----------------------------------------------------------------
+#          NAME:  check_software
+#   DESCRIPTION:  Check on installed software
+#    PARAMETERS:  
+#       RETURNS:  
+#-------------------------------------------------------------------------------
+check_software ()
+{
+  hash docker 2>/dev/null
+  hash docker-compose 2>/dev/null
+  if [[ $? > 0 ]]; then
+    echo "Установите необходимое ПО для работы, Меню -- пункт 1"
+    exit 1
+  fi 
+}	# ----------  end of function check_software  ----------
+
+#---  FUNCTION  ----------------------------------------------------------------
 #          NAME:  install_software
 #   DESCRIPTION:  Install docker software
 #    PARAMETERS:  
@@ -38,12 +54,12 @@ install_software ()
   hash curl 2>/dev/null
   if [[ $? > 0 ]]; then
     echo "Установка curl..."
-    sudo apt-get install -y curl
+    sudo apt-get install -y curl &>/dev/null
   fi
   hash git 2>/dev/null
   if [[ $? > 0 ]]; then
     echo "Установка git..."
-    sudo apt-get install -y git
+    sudo apt-get install -y git &>/dev/null
   fi
   hash docker 2>/dev/null
   if [[ $? > 0 ]]; then
@@ -57,16 +73,18 @@ install_software ()
   hash docker-compose 2>/dev/null
   if [[ $? > 0 ]]; then
     echo "Установка docker-compose..."
-    sudo curl -L "https://github.com/docker/compose/releases/download/1.25.4/docker-compose-$(uname -s)-$(uname -m)" \
+    sudo curl -sSL "https://github.com/docker/compose/releases/download/1.25.4/docker-compose-$(uname -s)-$(uname -m)" \
       -o /usr/bin/docker-compose
     sudo chmod +x /usr/bin/docker-compose
   fi
   if [[ $(id -u) != 0 ]]; then
     echo ""
-    echo "Необходимое ПО установлено, запустите меню еще раз и настройте окружение"
+    echo "Необходимое ПО установлено"
+    echo "Настройте рабочее окружение, пункт меню -- 2"
     newgrp docker
   else
-    echo "Необходимое ПО установлено, настройте окружение"
+    echo "Необходимое ПО установлено"
+    echo "Настройте рабочее окружение, пункт меню -- 2"
   fi
 }	# ----------  end of function install_software  ----------
 
@@ -78,17 +96,20 @@ install_software ()
 #-------------------------------------------------------------------------------
 install_env ()
 {
+  check_software
   env_file='.env'
   template_env='.templates/template.env'
   frontend_conf_d='frontend/conf.d'
   
   source .func
   
-  read -p "Введите название пула для сайтов: " poolname
+  read -p "Введите название окружения для сайтов: " poolname
   read -p "Укажите путь к каталогу где будут хранится сайты: " sitepath
   read -p "Введите имя пользователя базы данных: " dbuser
-  read -p "Введите пароль пользователя базы данных. В пароле могут быть только цифры и латинские буквы: " dbpasswd
-  read -p "Введите пароль суперпользователя root базы данных. В пароле могут быть только цифры и латинские буквы: " dbrootpasswd
+  read -sp "Введите пароль пользователя базы данных. В пароле могут быть только цифры и латинские буквы: " dbpasswd
+  echo ""
+  read -sp "Введите пароль суперпользователя root базы данных. В пароле могут быть только цифры и латинские буквы: " dbrootpasswd
+  echo ""
 
   if [[ "${sitepath: -1}" == '/' ]]; then
     sitepath=${sitepath::-1}
@@ -99,7 +120,8 @@ install_env ()
     while true; do
       if [[ ! $dbpasswd =~ ^[[:alnum:]]+$ ]]; then
         unset dbpasswd
-        read -p "Еще раз ведите пароль пользователя базы данных: " dbpasswd
+        read -sp "Еще раз ведите пароль пользователя базы данных: " dbpasswd
+        echo ""
       else
         break
       fi
@@ -111,7 +133,8 @@ install_env ()
     while true; do
       if [[ ! $dbrootpasswd =~ ^[[:alnum:]]+$ ]]; then
         unset dbrootpasswd
-        read -p "Еще раз ведите пароль суперпользователя root базы данных: " dbrootpasswd
+        read -sp "Еще раз ведите пароль суперпользователя root базы данных: " dbrootpasswd
+        echo ""
       else
         break
       fi
@@ -146,6 +169,7 @@ install_env ()
 #-------------------------------------------------------------------------------
 add_trial_version ()
 {
+  check_software
   source .env
   read -p "Введите название сайта " vhost
   sudo mkdir -p $SITE_PATH/$vhost/www
@@ -154,7 +178,7 @@ add_trial_version ()
   sed -i "s/##vhostname##/$vhost/g" $frontend_conf_d/$vhost.conf
   curl -L "http://www.1c-bitrix.ru/download/scripts/bitrixsetup.php" \
     -o $SITE_PATH/$vhost/www/bitrixsetup.php
-  docker down
+  docker-compose down
   docker-compose up -d --build
   exit 0
 }	# ----------  end of function add_trial_version  ----------
@@ -167,11 +191,12 @@ add_trial_version ()
 #-------------------------------------------------------------------------------
 create_db ()
 {
+  check_software
   source .env
   read -p "Введите название базы данных " dbname
   docker exec -i ${PROJECT_NAME}_mysql mysql -uroot -p$MYSQL_ROOT_PASSWORD \
     -e "CREATE DATABASE IF NOT EXISTS $dbname CHARACTER SET utf8 COLLATE utf8_unicode_ci; \
-        GRANT ALL PRIVILEGES ON $dbname . * TO \`$MYSQL_USER\`@\`localhost\`; \
+        GRANT ALL PRIVILEGES ON $dbname . * TO \`$MYSQL_USER\`@\`%\`; \
         FLUSH PRIVILEGES;" &>/dev/null
   echo "База данных $dbname создана"
 }	# ----------  end of function create_db  ----------
@@ -184,6 +209,7 @@ create_db ()
 #-------------------------------------------------------------------------------
 load_dump ()
 {
+  check_software
   source .env
   read -p "Укажите путь к дампу базы данных. Загрузить дамп можно в текстовом формате или в архиве gzip: " dumppath
   read -p "Введите название базы данных куда будет загружен дамп " dbname
@@ -207,6 +233,7 @@ load_dump ()
 #-------------------------------------------------------------------------------
 add_vhost ()
 {
+  check_software
   source .env
   read -p "Введите название сайта " vhost
   sudo mkdir -p $SITE_PATH/$vhost/www
@@ -215,7 +242,7 @@ add_vhost ()
   sed -i "s/##vhostname##/$vhost/g" $frontend_conf_d/$vhost.conf
   create_db
   load_dump
-  docker down
+  docker-compose down
   docker-compose up -d --build
   echo ""
   echo "Разместите файлы проекта в docroot сайта $SITE_PATH/$vhost/www"
@@ -232,6 +259,7 @@ add_vhost ()
 #-------------------------------------------------------------------------------
 make_settings ()
 {
+  check_software
   source .env
   read -p "Укажите docroot сайта: " docroot
   if [[ "${docroot: -1}" == '/' ]]; then
@@ -254,6 +282,8 @@ make_settings ()
   sed -i "s|$dbuser|$MYSQL_USER|g"     $dbconn_file
   sed -i "s|$dbpass|$MYSQL_PASSWORD|g" $dbconn_file
   sed -i "s|$dbname|$namedb|g"         $dbconn_file
+
+  echo "Готово"
 }	# ----------  end of function make_settings  ----------
 
 #---  FUNCTION  ----------------------------------------------------------------
