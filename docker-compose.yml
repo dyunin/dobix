@@ -30,7 +30,6 @@ services:
     working_dir: /var/www
     links:
       - db
-      - memcached
     volumes:
       - ${SITE_PATH}:/var/www
       - ./log/php:/var/log/php
@@ -40,25 +39,13 @@ services:
       - dobix_network
     restart: always
 
-  memcached:
-    image: memcached:1.6-alpine
-    container_name: ${PROJECT_NAME}_memcached
-    command: ["memcached", "-m", "128"]
-    volumes:
-      - ./log/memcached:/var/log/memcached
-      #- ./memcached:/var/lib/memcached
-    ports:
-      - "11211"
-    networks:
-      - dobix_network
-    restart: always
-
   db:
     image: mysql:5.7
     container_name: ${PROJECT_NAME}_mysql
     volumes:
       - ./db/mysql:/var/lib/mysql
-      - ./db/my.cnf:/etc/mysql/conf.d/my.cnf
+      - ./db/conf.d:/etc/mysql/conf.d
+      - ./log/mysql:/var/log/mysql
     ports:
         - "3306"
     environment:

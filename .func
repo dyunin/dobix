@@ -158,6 +158,7 @@ install_env ()
   #-------------------------------------------------------------------------------
   #  Create env for default site
   #-------------------------------------------------------------------------------
+  mkdir -p db/conf.d && cp .templates/custom.cnf db/conf.d
   mkdir -p $sitepath/bitrix/www
   curl -sSL http://dev.1c-bitrix.ru/download/scripts/bitrix_server_test.php \
     -o $sitepath/bitrix/www/index.php
@@ -186,10 +187,11 @@ add_trial_version ()
   curl -sSL "http://www.1c-bitrix.ru/download/scripts/bitrixsetup.php" \
     -o $SITE_PATH/$vhost/www/bitrixsetup.php
   echo "Установка..."
+  create_db
+  echo "Применение изменений..."
   docker-compose down
   docker-compose up -d --build
   echo ""
-  create_db
   echo "Готово. Добавьте название сайта в файл hosts связав" \
     "его с адресом где развернуто рабочее окружение"
   echo "Например 127.0.0.1 site. После этого перейдите в браузере по адресу" \
@@ -256,6 +258,7 @@ add_vhost ()
   sed -i "s/##vhostname##/$vhost/g" $frontend_conf_d/$vhost.conf
   create_db
   load_dump
+  echo "Применение изменений..."
   docker-compose down
   docker-compose up -d --build
   echo ""
