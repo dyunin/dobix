@@ -1,20 +1,7 @@
 #!/bin/bash - 
 #===============================================================================
-#
-#          FILE: menu.sh
-# 
-#         USAGE: ./menu.sh 
-# 
-#   DESCRIPTION: 
-# 
-#       OPTIONS: ---
-#  REQUIREMENTS: ---
-#          BUGS: ---
-#         NOTES: ---
+#   DESCRIPTION: Menu for managment environment
 #        AUTHOR: Peter Dyunin (), 
-#  ORGANIZATION: 
-#       CREATED: 28.03.2020 15:54
-#      REVISION:  ---
 #===============================================================================
 
 set -o nounset                              # Treat unset variables as an error
