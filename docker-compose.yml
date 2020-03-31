@@ -16,7 +16,7 @@ services:
       - ./log/nginx:/var/log/nginx
       - ./frontend/conf.d:/etc/nginx/conf.d
     ports:
-      - "8080:80"
+      - "${PORT}:80"
     networks:
       - dobix_network
     restart: always

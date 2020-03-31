@@ -134,8 +134,12 @@ install_env ()
   frontend_conf_d='frontend/conf.d'
   
   source .func
+  echo ""
+  echo -e "${info}Установка окружения.${std}" 
+  echo "В скобках значения по умолчанию, можно оставить их или указать свои."
+  echo ""
   
-  read -p "По умолчанию используется порт 8080. Укажите порт, если хотите использовать другой: (8080) " port
+  read -p "Укажите порт, если хотите использовать другой: (8080) " port
 
   #-------------------------------------------------------------------------------
   # Check port
@@ -144,16 +148,19 @@ install_env ()
   check_port $port
 
   read -p "Введите название окружения для сайтов: (bitrix) " poolname
-  read -p "Укажите путь к каталогу где будут хранится сайты: (./sites) " sitepath
+  read -p "Укажите путь полный путь к каталогу где будут храниться сайты: (./sites) " sitepath
   read -p "Введите имя пользователя базы данных: (bitrix) " dbuser
-  read -sp "Введите пароль пользователя базы данных. В пароле могут быть только цифры и латинские буквы: " dbpasswd
+  echo -e "${warning}Пароль может содержать только цифры и латинские буквы ${std}"
+  read -sp "Введите пароль пользователя базы данных: (bitrix) " dbpasswd
   echo ""
-  read -sp "Введите пароль суперпользователя root базы данных. В пароле могут быть только цифры и латинские буквы: " dbrootpasswd
+  read -sp "Введите пароль суперпользователя root базы данных: (bitrix) " dbrootpasswd
   echo ""
 
-  [[ -z "$poolname" ]] && poolname='bitrix'
-  [[ -z "$sitepath" ]] && sitepath='./sites'
-  [[ -z "$dbuser" ]]   && dbuser='bitrix'
+  [[ -z "$poolname" ]]       && poolname='bitrix'
+  [[ -z "$sitepath" ]]       && sitepath='./sites'
+  [[ -z "$dbuser" ]]         && dbuser='bitrix'
+  [[ -z "$dbpasswd" ]]       && dbpasswd='bitrix'
+  [[ -z "$dbrootpasswd" ]]   && dbrootpasswd='bitrix'
 
   if [[ "${sitepath: -1}" == '/' ]]; then
     sitepath=${sitepath::-1}
@@ -191,6 +198,7 @@ install_env ()
   cp $template_env $env_file
   
   sed -i "s|##uid##|$(id -u)|g"               $env_file
+  sed -i "s|##port##|$port|g"                 $env_file
   sed -i "s|##poolname##|$poolname|g"         $env_file
   sed -i "s|##sitepath##|$sitepath|g"         $env_file
   sed -i "s|##dbuser##|$dbuser|g"             $env_file
