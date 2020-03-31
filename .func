@@ -10,6 +10,12 @@ if [[ -f .env ]]; then
   source .env
 fi
 
+danger='\033[0;41;37m'
+warning='\033[1;33m'
+success='\033[1;32m'
+info='\033[1;36m'
+header='\033[0;42;37m'
+std='\033[0;0;39m'
 frontend_conf_d='frontend/conf.d'
 template_vhost='.templates/template.vhost'
 
@@ -22,13 +28,49 @@ template_vhost='.templates/template.vhost'
 #-------------------------------------------------------------------------------
 check_software ()
 {
-  hash docker 2>/dev/null
-  hash docker-compose 2>/dev/null
+  hash docker 2>/dev/null \
+  && hash docker-compose 2>/dev/null \
+  && hash curl 2>/dev/null
   if [[ $? > 0 ]]; then
-    echo "Установите необходимое ПО для работы, Меню -- пункт 1"
+    echo -e "${warning}Установите необходимое ПО для работы, Меню -- пункт 1${std}" && sleep 1
     exit 1
   fi 
 }	# ----------  end of function check_software  ----------
+
+
+#---  FUNCTION  ----------------------------------------------------------------
+#          NAME:  check_env
+#   DESCRIPTION:  Check environment file exist
+#    PARAMETERS:  
+#       RETURNS:  
+#-------------------------------------------------------------------------------
+check_env ()
+{
+  if [[ ! -e .env ]]; then
+    echo -e "${warning}Необходимо настроить окружение. Меню -- Пункт 2${std}"
+  fi
+}	# ----------  end of function check_env  ----------
+
+
+#---  FUNCTION  ----------------------------------------------------------------
+#          NAME:  check_port
+#   DESCRIPTION:  Check if port is in use
+#    PARAMETERS:  
+#       RETURNS:  
+#-------------------------------------------------------------------------------
+check_port ()
+{
+  hash lsof 2>/dev/null
+  if [[ $? > 0 ]]; then
+    sudo apt-get install -y lsof &> /dev/null
+  fi
+  sudo lsof -i:$1 &>/dev/null
+  if [[ ! $? == 0 ]]; then
+    program_name=$(sudo lsof -i:$1 | awk 'NR==2 {print $1}')
+    echo -e "${warning}Порт $1 занят программой $program_name ${std}"
+    exit 1
+  fi
+}	# ----------  end of function check_port  ----------
 
 #---  FUNCTION  ----------------------------------------------------------------
 #          NAME:  install_software
@@ -40,7 +82,7 @@ install_software ()
 {
   hash curl 2>/dev/null
   if [[ $? > 0 ]]; then
-    echo "Установка curl..."
+    echo -e "${info}Установка curl..."
     sudo apt-get install -y curl &>/dev/null
   fi
   hash git 2>/dev/null
@@ -59,19 +101,21 @@ install_software ()
   fi
   hash docker-compose 2>/dev/null
   if [[ $? > 0 ]]; then
-    echo "Установка docker-compose..."
+    echo -e "Установка docker-compose...${std}"
     sudo curl -sSL "https://github.com/docker/compose/releases/download/1.25.4/docker-compose-$(uname -s)-$(uname -m)" \
       -o /usr/bin/docker-compose
     sudo chmod +x /usr/bin/docker-compose
   fi
   if [[ $(id -u) != 0 ]]; then
     echo ""
-    echo "Необходимое ПО установлено"
+    echo -e "${success}Необходимое ПО установлено"
     echo "Настройте рабочее окружение, пункт меню -- 2"
     newgrp docker
+    echo ""
   else
     echo "Необходимое ПО установлено"
-    echo "Настройте рабочее окружение, пункт меню -- 2"
+    echo -e "Настройте рабочее окружение, пункт меню -- 2${std}"
+    echo ""
   fi
 }	# ----------  end of function install_software  ----------
 
@@ -84,26 +128,39 @@ install_software ()
 install_env ()
 {
   check_software
+
   env_file='.env'
   template_env='.templates/template.env'
   frontend_conf_d='frontend/conf.d'
   
   source .func
   
-  read -p "Введите название окружения для сайтов: " poolname
-  read -p "Укажите путь к каталогу где будут хранится сайты: " sitepath
-  read -p "Введите имя пользователя базы данных: " dbuser
+  read -p "По умолчанию используется порт 8080. Укажите порт, если хотите использовать другой: (8080) " port
+
+  #-------------------------------------------------------------------------------
+  # Check port
+  #-------------------------------------------------------------------------------
+  [[ -z "$port" ]] && port='8080'
+  check_port $port
+
+  read -p "Введите название окружения для сайтов: (bitrix) " poolname
+  read -p "Укажите путь к каталогу где будут хранится сайты: (./sites) " sitepath
+  read -p "Введите имя пользователя базы данных: (bitrix) " dbuser
   read -sp "Введите пароль пользователя базы данных. В пароле могут быть только цифры и латинские буквы: " dbpasswd
   echo ""
   read -sp "Введите пароль суперпользователя root базы данных. В пароле могут быть только цифры и латинские буквы: " dbrootpasswd
   echo ""
+
+  [[ -z "$poolname" ]] && poolname='bitrix'
+  [[ -z "$sitepath" ]] && sitepath='./sites'
+  [[ -z "$dbuser" ]]   && dbuser='bitrix'
 
   if [[ "${sitepath: -1}" == '/' ]]; then
     sitepath=${sitepath::-1}
   fi
 
   if [[ ! $dbpasswd =~ ^[[:alnum:]]+$ ]]; then
-      echo "Пароль может содержать только цифры и латинские буквы !!!"
+      echo -e "${warning}Пароль пользователя может содержать только цифры и латинские буквы !!!${std}" && sleep 1
     while true; do
       if [[ ! $dbpasswd =~ ^[[:alnum:]]+$ ]]; then
         unset dbpasswd
@@ -116,7 +173,7 @@ install_env ()
   fi
 
   if [[ ! $dbrootpasswd =~ ^[[:alnum:]]+$ ]]; then
-      echo "Пароль суперпользователя может содержать только цифры и латинские буквы !!!"
+      echo -e "${warning}Пароль суперпользователя базы данных может содержать только цифры и латинские буквы !!!${std}" && sleep 1
     while true; do
       if [[ ! $dbrootpasswd =~ ^[[:alnum:]]+$ ]]; then
         unset dbrootpasswd
@@ -127,6 +184,9 @@ install_env ()
       fi
     done
   fi
+
+
+  echo -e "${info}Готовим окружение...${std}"
   
   cp $template_env $env_file
   
@@ -139,8 +199,8 @@ install_env ()
 
   if [[ ! -d $sitepath ]]; then
     sudo mkdir -p $sitepath
-    sudo chown -R $USER: $sitepath
   fi
+  sudo chown -R $USER: $sitepath
  
   #-------------------------------------------------------------------------------
   #  Create env for default site
@@ -152,7 +212,7 @@ install_env ()
 
   docker-compose up -d --build &> /dev/null
   echo ""
-  echo "Окружение готово к работе. Добавьте сайт."
+  echo -e "${success}Окружение готово к работе. Добавьте сайт.${std}"
   post_install
 }	# ----------  end of function install  ----------
 
@@ -165,6 +225,7 @@ install_env ()
 add_trial_version ()
 {
   check_software
+  check_env
   source .env
   read -p "Введите название сайта " vhost
   sudo mkdir -p $SITE_PATH/$vhost/www
@@ -173,16 +234,16 @@ add_trial_version ()
   sed -i "s/##vhostname##/$vhost/g" $frontend_conf_d/$vhost.conf
   curl -sSL "http://www.1c-bitrix.ru/download/scripts/bitrixsetup.php" \
     -o $SITE_PATH/$vhost/www/bitrixsetup.php
-  echo "Установка..."
+  echo -e "${info}Установка..."
   create_db
-  echo "Применение изменений..."
+  echo -e "Применение изменений...${std}"
   docker-compose down
   docker-compose up -d --build
-  echo ""
+  echo -e "${success}"
   echo "Готово. Добавьте название сайта в файл hosts связав" \
     "его с адресом где развернуто рабочее окружение"
-  echo "Например 127.0.0.1 site. После этого перейдите в браузере по адресу" \
-    "http://site:8080 и продолжите установку"
+  echo -e "Например 127.0.0.1 site. После этого перейдите в браузере по адресу" \
+    "http://site:[port number] и продолжите установку${std}"
   exit 0
 }	# ----------  end of function add_trial_version  ----------
 
@@ -195,6 +256,7 @@ add_trial_version ()
 create_db ()
 {
   check_software
+  check_env
   source .env
   read -p "Введите название базы данных " dbname
   docker exec -i ${PROJECT_NAME}_mysql mysql -uroot -p$MYSQL_ROOT_PASSWORD \
@@ -213,6 +275,7 @@ create_db ()
 load_dump ()
 {
   check_software
+  check_env
   source .env
   read -p "Укажите путь к дампу базы данных. Загрузить дамп можно в текстовом формате или в архиве gzip: " dumppath
   read -p "Введите название базы данных куда будет загружен дамп " dbname
@@ -237,6 +300,7 @@ load_dump ()
 add_vhost ()
 {
   check_software
+  check_env
   source .env
   read -p "Введите название сайта " vhost
   sudo mkdir -p $SITE_PATH/$vhost/www
@@ -264,6 +328,7 @@ add_vhost ()
 make_settings ()
 {
   check_software
+  check_env
   source .env
   read -p "Укажите docroot сайта: " docroot
   if [[ "${docroot: -1}" == '/' ]]; then
