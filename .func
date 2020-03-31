@@ -65,7 +65,7 @@ check_port ()
     sudo apt-get install -y lsof &> /dev/null
   fi
   sudo lsof -i:$1 &>/dev/null
-  if [[ ! $? == 0 ]]; then
+  if [[ $? == 0 ]]; then
     program_name=$(sudo lsof -i:$1 | awk 'NR==2 {print $1}')
     echo -e "${warning}Порт $1 занят программой $program_name ${std}"
     exit 1
@@ -128,6 +128,20 @@ install_software ()
 install_env ()
 {
   check_software
+  local choice
+  if [[ -f .env ]]; then
+    echo ""
+    echo -e "${warning}Окружение уже установлено!${std}"
+    echo ""
+    echo "1. Установить окружение заново"
+    echo "0. Выход"
+    echo ""
+    read -p "Выберите пункт меню и нажмите Enter " choice
+    case $choice in
+       1) rm -rf .env ;;
+       0) exit 0 ;;
+    esac
+  fi
 
   env_file='.env'
   template_env='.templates/template.env'
@@ -136,6 +150,7 @@ install_env ()
   source .func
   echo ""
   echo -e "${info}Установка окружения.${std}" 
+  echo ""
   echo "В скобках значения по умолчанию, можно оставить их или указать свои."
   echo ""
   
@@ -213,7 +228,7 @@ install_env ()
   #-------------------------------------------------------------------------------
   #  Create env for default site
   #-------------------------------------------------------------------------------
-  mkdir -p db/conf.d && cp .templates/custom.cnf db/conf.d
+  mkdir -p db/conf.d && cp .templates/db.cnf db/conf.d
   mkdir -p $sitepath/bitrix/www
   curl -sSL http://dev.1c-bitrix.ru/download/scripts/bitrix_server_test.php \
     -o $sitepath/bitrix/www/index.php
@@ -236,6 +251,10 @@ add_trial_version ()
   check_env
   source .env
   read -p "Введите название сайта " vhost
+  if [[ -z $vhost ]]; then
+    echo -e "${danger}Пустое имя у сайта!??? А такие существуют?${std}" 
+    exit 1
+  fi
   sudo mkdir -p $SITE_PATH/$vhost/www
   sudo chown -R $USER: $SITE_PATH/$vhost
   cp $template_vhost $frontend_conf_d/$vhost.conf
@@ -244,11 +263,13 @@ add_trial_version ()
     -o $SITE_PATH/$vhost/www/bitrixsetup.php
   echo -e "${info}Установка..."
   create_db
+  echo ""
   echo -e "Применение изменений...${std}"
   docker-compose down
   docker-compose up -d --build
+  echo ""
   echo -e "${success}"
-  echo "Готово. Добавьте название сайта в файл hosts связав" \
+  echo "Готово. Добавьте название сайта $vhost в файл /etc/hosts связав" \
     "его с адресом где развернуто рабочее окружение"
   echo -e "Например 127.0.0.1 site. После этого перейдите в браузере по адресу" \
     "http://site:[port number] и продолжите установку${std}"
@@ -267,11 +288,15 @@ create_db ()
   check_env
   source .env
   read -p "Введите название базы данных " dbname
+  if [[ -z $dbname ]]; then
+    echo -e "${danger}Пустое имя!??? База данных NULL что ли?${std}" 
+    exit 1
+  fi
   docker exec -i ${PROJECT_NAME}_mysql mysql -uroot -p$MYSQL_ROOT_PASSWORD \
     -e "CREATE DATABASE IF NOT EXISTS $dbname CHARACTER SET utf8 COLLATE utf8_unicode_ci; \
         GRANT ALL PRIVILEGES ON $dbname . * TO \`$MYSQL_USER\`@\`%\`; \
         FLUSH PRIVILEGES;" &>/dev/null
-  echo "База данных $dbname создана"
+  echo -e "${info} База данных $dbname создана${std}"
 }	# ----------  end of function create_db  ----------
 
 #---  FUNCTION  ----------------------------------------------------------------
@@ -285,16 +310,22 @@ load_dump ()
   check_software
   check_env
   source .env
+  local dbname
   read -p "Укажите путь к дампу базы данных. Загрузить дамп можно в текстовом формате или в архиве gzip: " dumppath
-  read -p "Введите название базы данных куда будет загружен дамп " dbname
-  if [[ $(file $dumppath | cut -d' ' -f2) == gzip ]]; then
-    echo "Загружается дамп..."
-    zcat $dumppath | docker exec -i ${PROJECT_NAME}_mysql mysql -uroot -p$MYSQL_ROOT_PASSWORD $dbname &>/dev/null
-  elif [[ $(file $dumppath | cut -d' ' -f4 | sed 's/.$//') == text ]]; then
-    echo "Загружается дамп..."
-    cat $dumppath | docker exec -i ${PROJECT_NAME}_mysql mysql -uroot -p$MYSQL_ROOT_PASSWORD $dbname &>/dev/null
+  if [[ -z $dumppath ]]; then
+    echo -e "${danger}Пусто!? Вы не указали путь к дампу${std}" 
+    exit 1
+  elif [[ $(file $dumppath | cut -d' ' -f2) == gzip || $(file $dumppath | cut -d' ' -f4 | sed 's/.$//') == text ]]; then
+    read -p "Введите название базы данных куда будет загружен дамп " dbname
+    if [[ $(file $dumppath | cut -d' ' -f2) == gzip ]]; then
+      echo -e "${info} Загружается дамп..."
+      zcat $dumppath | docker exec -i ${PROJECT_NAME}_mysql mysql -uroot -p$MYSQL_ROOT_PASSWORD $dbname &>/dev/null
+    elif [[ $(file $dumppath | cut -d' ' -f4 | sed 's/.$//') == text ]]; then
+      echo -e "Загружается дамп...${std}"
+      cat $dumppath | docker exec -i ${PROJECT_NAME}_mysql mysql -uroot -p$MYSQL_ROOT_PASSWORD $dbname &>/dev/null
+    fi  
   else  
-    echo "Непонятный тип дампа, проверте путь и формат файла дампа."
+    echo -e "${danger}Непонятный тип дампа, проверте путь и формат файла дампа.${std}"
     exit 1
   fi
 }	# ----------  end of function load_dump  ----------
@@ -311,6 +342,10 @@ add_vhost ()
   check_env
   source .env
   read -p "Введите название сайта " vhost
+  if [[ -z $vhost ]]; then
+    echo -e "${danger}Пусто!? Вы видели сайт с пустым именем?${std}" 
+    exit 1
+  fi
   sudo mkdir -p $SITE_PATH/$vhost/www
   sudo chown -R $USER: $SITE_PATH/$vhost
   cp $template_vhost $frontend_conf_d/$vhost.conf
