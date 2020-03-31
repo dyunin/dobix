@@ -6,3 +6,4 @@ site
 .env
 test.env
 backup
+src
