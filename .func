@@ -67,7 +67,7 @@ check_port ()
   sudo lsof -i:$1 &>/dev/null
   if [[ $? == 0 ]]; then
     program_name=$(sudo lsof -i:$1 | awk 'NR==2 {print $1}')
-    echo -e "${warning}Порт $1 занят программой $program_name ${std}"
+    echo -e "${warning}Порт $1 занят программой $program_name, необходимо выбрать другой порт или беспардонно избавиться от $program_name ${std}"
     exit 1
   fi
 }	# ----------  end of function check_port  ----------
@@ -151,7 +151,7 @@ install_env ()
   echo ""
   echo -e "${info}Установка окружения.${std}" 
   echo ""
-  echo "В скобках значения по умолчанию, можно оставить их или указать свои."
+  echo -e "${warning}В скобках значения по умолчанию, можно оставить их или указать свои.${std}"
   echo ""
   
   read -p "Укажите порт, если хотите использовать другой: (8080) " port
@@ -207,11 +207,10 @@ install_env ()
     done
   fi
 
-
+  echo ""
   echo -e "${info}Готовим окружение...${std}"
   
   cp $template_env $env_file
-  
   sed -i "s|##uid##|$(id -u)|g"               $env_file
   sed -i "s|##port##|$port|g"                 $env_file
   sed -i "s|##poolname##|$poolname|g"         $env_file
@@ -250,7 +249,9 @@ add_trial_version ()
   check_software
   check_env
   source .env
+  echo ""
   read -p "Введите название сайта " vhost
+  echo ""
   if [[ -z $vhost ]]; then
     echo -e "${danger}Пустое имя у сайта!??? А такие существуют?${std}" 
     exit 1
@@ -261,7 +262,7 @@ add_trial_version ()
   sed -i "s/##vhostname##/$vhost/g" $frontend_conf_d/$vhost.conf
   curl -sSL "http://www.1c-bitrix.ru/download/scripts/bitrixsetup.php" \
     -o $SITE_PATH/$vhost/www/bitrixsetup.php
-  echo -e "${info}Установка...${std}"
+  echo -e "${info}Установка docroot сайта${std}"
   create_db
   echo ""
   echo -e "${info}Применение изменений...${std}"
@@ -273,6 +274,7 @@ add_trial_version ()
     "его с адресом где развернуто рабочее окружение"
   echo -e "Например 127.0.0.1 site. После этого перейдите в браузере по адресу" \
     "http://site:[port number] и продолжите установку${std}"
+  echo ""
   echo -e "${warning}При установке продукта, на шаге 'Создание базы данных', в поле * Сервер, необходимо указать db."
   echo -e "Т.е. замените localhost на db. Заполните остальные поля.${std}"
   echo ""
@@ -291,6 +293,7 @@ create_db ()
   check_env
   source .env
   read -p "Введите название базы данных " dbname
+  echo ""
   if [[ -z $dbname ]]; then
     echo -e "${danger}Пустое имя!??? База данных NULL что ли?${std}" 
     exit 1
@@ -305,7 +308,7 @@ create_db ()
     -e "CREATE DATABASE IF NOT EXISTS $dbname CHARACTER SET utf8 COLLATE utf8_unicode_ci; \
         GRANT ALL PRIVILEGES ON $dbname . * TO \`$MYSQL_USER\`@\`%\`; \
         FLUSH PRIVILEGES;" &>/dev/null
-  echo -e "${info} База данных $dbname создана${std}"
+  echo -e "${info}База данных $dbname создана${std}"
 }	# ----------  end of function create_db  ----------
 
 #---  FUNCTION  ----------------------------------------------------------------
