@@ -45,7 +45,6 @@ services:
     volumes:
       - ./db/mysql:/var/lib/mysql
       - ./db/conf.d:/etc/mysql/conf.d
-      - ./log/mysql:/var/log/mysql
     ports:
         - "3306"
     environment:
