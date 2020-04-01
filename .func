@@ -32,7 +32,7 @@ check_software ()
   && hash docker-compose 2>/dev/null \
   && hash curl 2>/dev/null
   if [[ $? > 0 ]]; then
-    echo -e "${warning}Установите необходимое ПО для работы, Меню -- пункт 1${std}" && sleep 1
+    echo -e "${warning}Установите необходимое ПО для работы, Меню -- Пункт 1${std}" && sleep 1
     exit 1
   fi 
 }	# ----------  end of function check_software  ----------
@@ -48,6 +48,7 @@ check_env ()
 {
   if [[ ! -e .env ]]; then
     echo -e "${warning}Необходимо настроить окружение. Меню -- Пункт 2${std}"
+    exit 1
   fi
 }	# ----------  end of function check_env  ----------
 
@@ -80,6 +81,7 @@ check_port ()
 #-------------------------------------------------------------------------------
 install_software ()
 {
+  echo ""
   hash curl 2>/dev/null
   if [[ $? > 0 ]]; then
     echo -e "${info}Установка curl..."
@@ -109,12 +111,12 @@ install_software ()
   if [[ $(id -u) != 0 ]]; then
     echo ""
     echo -e "${success}Необходимое ПО установлено"
-    echo "Настройте рабочее окружение, пункт меню -- 2"
+    echo "Настройте рабочее окружение, Меню -- Пункт 2"
     newgrp docker
     echo ""
   else
     echo "Необходимое ПО установлено"
-    echo -e "Настройте рабочее окружение, пункт меню -- 2${std}"
+    echo -e "Настройте рабочее окружение, Меню -- Пункт 2${std}"
     echo ""
   fi
 }	# ----------  end of function install_software  ----------
@@ -151,7 +153,7 @@ install_env ()
   echo ""
   echo -e "${info}Установка окружения.${std}" 
   echo ""
-  echo -e "${warning}В скобках значения по умолчанию, можно оставить их или указать свои.${std}"
+  echo -e "${warning}В скобках значения по умолчанию, можно оставить их или указать свой.${std}"
   echo ""
   
   read -p "Укажите порт, если хотите использовать другой: (8080) " port
@@ -323,14 +325,15 @@ load_dump ()
   check_env
   source .env
   local dbname
-  read -p "Укажите путь к дампу базы данных. Загрузить дамп можно в текстовом формате или в архиве gzip: " dumppath
+  echo ""
+  read -p "Укажите полный путь к дампу базы данных. Загрузить дамп можно в текстовом формате или в архиве gzip: " dumppath
   if [[ -z $dumppath ]]; then
     echo -e "${danger}Пусто!? Вы не указали путь к дампу${std}" 
     exit 1
   elif [[ $(file $dumppath | cut -d' ' -f2) == gzip || $(file $dumppath | cut -d' ' -f4 | sed 's/.$//') == text ]]; then
     read -p "Введите название базы данных куда будет загружен дамп " dbname
     if [[ $(file $dumppath | cut -d' ' -f2) == gzip ]]; then
-      echo -e "${info} Загружается дамп..."
+      echo -e "${info}Загружается дамп..."
       zcat $dumppath | docker exec -i ${PROJECT_NAME}_mysql mysql -uroot -p$MYSQL_ROOT_PASSWORD $dbname &>/dev/null
     elif [[ $(file $dumppath | cut -d' ' -f4 | sed 's/.$//') == text ]]; then
       echo -e "Загружается дамп...${std}"
@@ -365,12 +368,13 @@ add_vhost ()
   create_db
   load_dump
   echo "Применение изменений..."
-  docker-compose down
-  docker-compose up -d --build
+  docker-compose down &> /dev/null
+  docker-compose up -d --build &> /dev/null
   echo ""
+  echo -e "${success}Готово"
   echo "Разместите файлы проекта в docroot сайта $SITE_PATH/$vhost/www"
   echo "Настройте подключение к базе данных вручную"
-  echo "Или воспользуйтесь меню, пункт 6"
+  echo -e "Или воспользуйтесь Mеню -- Пункт 6${std}"
 }	# ----------  end of function add_vhost  ----------
 
 
@@ -407,7 +411,8 @@ make_settings ()
   sed -i "s|$dbpass|$MYSQL_PASSWORD|g" $dbconn_file
   sed -i "s|$dbname|$namedb|g"         $dbconn_file
 
-  echo "Готово"
+  echo ""
+  echo -e "${success}Готово${std}"
 }	# ----------  end of function make_settings  ----------
 
 #---  FUNCTION  ----------------------------------------------------------------
