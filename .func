@@ -18,6 +18,8 @@ header='\033[0;42;37m'
 std='\033[0;0;39m'
 frontend_conf_d='frontend/conf.d'
 template_vhost='.templates/template.vhost'
+redhat_family='/etc/redhat-release'
+debian_family='/etc/debian_version'
 
 
 #---  FUNCTION  ----------------------------------------------------------------
@@ -63,7 +65,12 @@ check_port ()
 {
   hash lsof 2>/dev/null
   if [[ $? > 0 ]]; then
-    sudo apt-get install -y lsof &> /dev/null
+    if [[ -e $debian_family ]]; then
+      sudo apt-get update &> /dev/null
+      sudo apt-get install -y lsof &> /dev/null
+    elif [[ -e $redhat_family ]]; then
+      sudo yum install -y lsof &>/dev/null
+    fi
   fi
   sudo lsof -i:$1 &>/dev/null
   if [[ $? == 0 ]]; then
@@ -82,15 +89,25 @@ check_port ()
 install_software ()
 {
   echo ""
+  [[ -e $debian_family ]] && sudo apt-get update &>/dev/null
+
   hash curl 2>/dev/null
   if [[ $? > 0 ]]; then
-    echo -e "${info}Установка curl..."
-    sudo apt-get install -y curl &>/dev/null
+  echo -e "${info}Установка curl..."
+    if [[ -e $debian_family ]]; then
+      sudo apt-get install -y curl &>/dev/null
+    elif [[ -e $redhat_family ]]; then
+      sudo yum install -y curl &>/dev/null
+    fi
   fi
   hash git 2>/dev/null
   if [[ $? > 0 ]]; then
     echo "Установка git..."
-    sudo apt-get install -y git &>/dev/null
+    if [[ -e $debian_family ]]; then
+      sudo apt-get install -y git &>/dev/null
+    elif [[ -e $redhat_family ]]; then
+      sudo yum install -y git &>/dev/null
+    fi
   fi
   hash docker 2>/dev/null
   if [[ $? > 0 ]]; then
