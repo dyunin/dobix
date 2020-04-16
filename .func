@@ -34,7 +34,7 @@ check_software ()
   && hash docker-compose 2>/dev/null \
   && hash curl 2>/dev/null
   if [[ $? > 0 ]]; then
-    echo -e "${warning}Установите необходимое ПО для работы, Меню -- Пункт 1${std}" && sleep 1
+    echo -e "${warning}Установите необходимое open source ПО для работы, Меню -- Пункт 1${std}" && sleep 1
     exit 1
   fi 
 }	# ----------  end of function check_software  ----------
@@ -75,7 +75,7 @@ check_port ()
   sudo lsof -i:$1 &>/dev/null
   if [[ $? == 0 ]]; then
     program_name=$(sudo lsof -i:$1 | awk 'NR==2 {print $1}')
-    echo -e "${warning}Порт $1 занят программой $program_name, необходимо выбрать другой порт или беспардонно избавиться от $program_name ${std}"
+    echo -e "${warning}Порт $1 занят программой $program_name, необходимо выбрать другой порт или беспардонно избавиться от этой !!!--->>> $program_name может быть любимой, а может не любимой,  программы. Решайте. Бог вам судья.${std}"
     exit 1
   fi
 }	# ----------  end of function check_port  ----------
@@ -170,7 +170,7 @@ install_env ()
   echo ""
   echo -e "${info}Установка окружения.${std}" 
   echo ""
-  echo -e "${warning}В скобках значения по умолчанию, можно оставить их или указать свой.${std}"
+  echo -e "${warning}В скобках значения по умолчанию, можно оставить их или указать свои.${std}"
   echo ""
   
   read -p "Укажите порт, если хотите использовать другой: (8080) " port
