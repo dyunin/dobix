@@ -17,9 +17,15 @@ server {
 	client_max_body_size 1024M; 
 	client_body_buffer_size 4M;
 	
-	if (!-e $request_filename) {
-		rewrite  ^(.*)$  /bitrix/urlrewrite.php last;
-	}
+  if ($request_uri ~ ^(.*)/index.(html|php)$) {
+    return 301 $1/;
+  }
+
+  rewrite ^([^.\?]*[^/])$ $1/ permanent;
+
+  if (!-e $request_filename) {
+    rewrite  ^(.*)$  /bitrix/urlrewrite.php last;
+  }
 	
 	location / {
 		try_files  $uri $uri/ @bitrix;
@@ -58,14 +64,5 @@ server {
 
 	location ~ (/\.ht|/\.git|/\.svn|/bitrix/modules|/upload/support/not_image) {
 		deny all;
-	}
-
-	error_page 404 /404.html;
-	location = /404.html {
-		root $docroot;
-	}
-	error_page   500 502 503 504  /50x.html;
-	location = /50x.html {
-		root $docroot;
 	}
 }
