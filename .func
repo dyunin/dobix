@@ -414,19 +414,19 @@ make_settings ()
 
   settings_file="$docroot/bitrix/.settings.php"
   dbconn_file="$docroot/bitrix/php_interface/dbconn.php"
-  dbhost=`grep DBHost     $dbconn_file | awk -F '"' '{print $2}'`
-  dbuser=`grep DBLogin    $dbconn_file | awk -F '"' '{print $2}'`
-  dbname=`grep DBName     $dbconn_file | awk -F '"' '{print $2}'`
-  dbpass=`grep DBPassword $dbconn_file | awk -F '"' '{print $2}'`
+  dbhost=$(grep DBHost     $dbconn_file | cut -d'"' -f2)
+  dbuser=$(grep DBLogin    $dbconn_file | cut -d'"' -f2)
+  dbname=$(grep DBName     $dbconn_file | cut -d'"' -f2)
+  dbpass=$(grep DBPassword $dbconn_file | cut -d'"' -f2)
+  files=($settings_file $dbconn_file)
 
-  sed -i "s|$dbhost|db|g"              $settings_file
-  sed -i "s|$dbuser|$MYSQL_USER|g"     $settings_file
-  sed -i "s|$dbpass|$MYSQL_PASSWORD|g" $settings_file
-  sed -i "s|$dbname|$namedb|g"         $settings_file
-  sed -i "s|$dbhost|db|g"              $dbconn_file
-  sed -i "s|$dbuser|$MYSQL_USER|g"     $dbconn_file
-  sed -i "s|$dbpass|$MYSQL_PASSWORD|g" $dbconn_file
-  sed -i "s|$dbname|$namedb|g"         $dbconn_file
+  for f in ${files[@]}
+    do
+      sed -i "s|$dbhost|db|g"              $f
+      sed -i "s|$dbuser|$MYSQL_USER|g"     $f
+      sed -i "s|$dbpass|$MYSQL_PASSWORD|g" $f
+      sed -i "s|$dbname|$namedb|g"         $f
+    done
 
   echo ""
   echo -e "${success}Готово${std}"
