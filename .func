@@ -227,13 +227,23 @@ install_env ()
   echo -e "${info}Готовим окружение...${std}"
   
   cp $template_env $env_file
-  sed -ie "s|##uid##|$(id -u)|g"               $env_file
-  sed -ie "s|##port##|$port|g"                 $env_file
-  sed -ie "s|##poolname##|$poolname|g"         $env_file
-  sed -ie "s|##sitepath##|$sitepath|g"         $env_file
-  sed -ie "s|##dbuser##|$dbuser|g"             $env_file
-  sed -ie "s|##dbpasswd##|$dbpasswd|g"         $env_file
-  sed -ie "s|##dbrootpasswd##|$dbrootpasswd|g" $env_file
+  if [[ "$OSTYPE" == "darwin"* ]]; then
+    sed -i '' -e "s|##uid##|$(id -u)|g"               $env_file
+    sed -i '' -e "s|##port##|$port|g"                 $env_file
+    sed -i '' -e "s|##poolname##|$poolname|g"         $env_file
+    sed -i '' -e "s|##sitepath##|$sitepath|g"         $env_file
+    sed -i '' -e "s|##dbuser##|$dbuser|g"             $env_file
+    sed -i '' -e "s|##dbpasswd##|$dbpasswd|g"         $env_file
+    sed -i '' -e "s|##dbrootpasswd##|$dbrootpasswd|g" $env_file
+  else
+    sed -i -e "s|##uid##|$(id -u)|g"               $env_file
+    sed -i -e "s|##port##|$port|g"                 $env_file
+    sed -i -e "s|##poolname##|$poolname|g"         $env_file
+    sed -i -e "s|##sitepath##|$sitepath|g"         $env_file
+    sed -i -e "s|##dbuser##|$dbuser|g"             $env_file
+    sed -i -e "s|##dbpasswd##|$dbpasswd|g"         $env_file
+    sed -i -e "s|##dbrootpasswd##|$dbrootpasswd|g" $env_file
+  fi
 
   if [[ ! -d $sitepath ]]; then
     sudo mkdir -p $sitepath
@@ -276,7 +286,11 @@ add_trial_version ()
   sudo mkdir -p $SITE_PATH/$vhost/www
   sudo chown -R $USER: $SITE_PATH/$vhost
   cp $template_vhost $frontend_conf_d/$vhost.conf
-  sed -ie "s/##vhostname##/$vhost/g" $frontend_conf_d/$vhost.conf
+  if [[ "$OSTYPE" == "darwin"* ]]; then
+    sed -i '' -e "s/##vhostname##/$vhost/g" $frontend_conf_d/$vhost.conf
+  else
+    sed -i -e "s/##vhostname##/$vhost/g" $frontend_conf_d/$vhost.conf
+  fi
   curl -sSL "http://www.1c-bitrix.ru/download/scripts/bitrixsetup.php" \
     -o $SITE_PATH/$vhost/www/bitrixsetup.php
   echo -e "${info}Установка docroot сайта${std}"
@@ -386,7 +400,11 @@ add_vhost ()
   sudo mkdir -p $SITE_PATH/$vhost/www
   sudo chown -R $USER: $SITE_PATH/$vhost
   cp $template_vhost $frontend_conf_d/$vhost.conf
-  sed -ie "s/##vhostname##/$vhost/g" $frontend_conf_d/$vhost.conf
+  if [[ "$OSTYPE" == "darwin"* ]]; then
+    sed -i '' -e "s/##vhostname##/$vhost/g" $frontend_conf_d/$vhost.conf
+  else
+    sed -i -e "s/##vhostname##/$vhost/g" $frontend_conf_d/$vhost.conf
+  fi
   create_db
   load_dump
   echo "Применение изменений..."
@@ -427,10 +445,17 @@ make_settings ()
 
   for f in ${files[@]}
     do
-      sed -ie "s|$dbhost|db|g"              $f
-      sed -ie "s|$dbuser|$MYSQL_USER|g"     $f
-      sed -ie "s|$dbpass|$MYSQL_PASSWORD|g" $f
-      sed -ie "s|$dbname|$namedb|g"         $f
+      if [[ "$OSTYPE" == "darwin"* ]]; then
+        sed -i '' -e "s|$dbhost|db|g"              $f
+        sed -i '' -e "s|$dbuser|$MYSQL_USER|g"     $f
+        sed -i '' -e "s|$dbpass|$MYSQL_PASSWORD|g" $f
+        sed -i '' -e "s|$dbname|$namedb|g"         $f
+      else
+        sed -i -e "s|$dbhost|db|g"              $f
+        sed -i -e "s|$dbuser|$MYSQL_USER|g"     $f
+        sed -i -e "s|$dbpass|$MYSQL_PASSWORD|g" $f
+        sed -i -e "s|$dbname|$namedb|g"         $f
+      fi
     done
 
   echo ""
