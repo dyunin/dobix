@@ -21,7 +21,6 @@ template_vhost='.templates/template.vhost'
 redhat_family='/etc/redhat-release'
 debian_family='/etc/debian_version'
 
-
 #---  FUNCTION  ----------------------------------------------------------------
 #          NAME:  check_software
 #   DESCRIPTION:  Check on installed software
@@ -39,7 +38,6 @@ check_software ()
   fi 
 }	# ----------  end of function check_software  ----------
 
-
 #---  FUNCTION  ----------------------------------------------------------------
 #          NAME:  check_env
 #   DESCRIPTION:  Check environment file exist
@@ -53,7 +51,6 @@ check_env ()
     exit 1
   fi
 }	# ----------  end of function check_env  ----------
-
 
 #---  FUNCTION  ----------------------------------------------------------------
 #          NAME:  check_port
@@ -275,6 +272,7 @@ add_trial_version ()
     echo -e "${danger}Пустое имя у сайта!??? А такие существуют?${std}" 
     exit 1
   fi
+  local port=$(grep PORT .env | cut -d'=' -f2)
   sudo mkdir -p $SITE_PATH/$vhost/www
   sudo chown -R $USER: $SITE_PATH/$vhost
   cp $template_vhost $frontend_conf_d/$vhost.conf
@@ -289,10 +287,18 @@ add_trial_version ()
   docker-compose up -d --build &> /dev/null
   echo ""
   echo -e "${success}"
-  echo "Готово. Добавьте название сайта $vhost в файл /etc/hosts связав" \
-    "его с адресом где развернуто рабочее окружение"
-  echo -e "Например 127.0.0.1 site. После этого перейдите в браузере по адресу" \
-    "http://site:[port number] и продолжите установку${std}"
+  echo -e "Готово. Добавьте название сайта $vhost в файл /etc/hosts связав" \
+    "его с адресом где развернуто рабочее окружение. Например:${std}"
+  echo ""
+  echo -e "${warning}127.0.0.1 $vhost ${std}"
+  echo ""
+  if [[ ${port} == 80 ]]; then
+    echo -e "${success}После этого в браузере перейдите по адресу" \
+      "http://$vhost и продолжите установку${std}"
+  else
+    echo -e "${success}После этого в браузере перейдите по адресу" \
+      "http://${vhost}:${port} и продолжите установку${std}"
+  fi
   echo ""
   echo -e "${warning}При установке продукта, на шаге 'Создание базы данных', в поле * Сервер, необходимо указать db."
   echo -e "Т.е. замените localhost на db. Заполните остальные поля.${std}"
@@ -322,12 +328,11 @@ create_db ()
     echo -e "${danger}Такая база данных уже существует!${std}"
     exit 1
   fi
-
   docker exec -i ${PROJECT_NAME}_mysql mysql -uroot -p$MYSQL_ROOT_PASSWORD \
     -e "CREATE DATABASE IF NOT EXISTS $dbname CHARACTER SET utf8 COLLATE utf8_unicode_ci; \
         GRANT ALL PRIVILEGES ON $dbname . * TO \`$MYSQL_USER\`@\`%\`; \
         FLUSH PRIVILEGES;" &>/dev/null
-  echo -e "${info}База данных $dbname создана${std}"
+  echo -e "${success}База данных $dbname создана${std}"
 }	# ----------  end of function create_db  ----------
 
 #---  FUNCTION  ----------------------------------------------------------------
